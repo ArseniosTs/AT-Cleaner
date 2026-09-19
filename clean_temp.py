@@ -37,8 +37,6 @@ ATCleaner v1.5 — очистка временных файлов Windows, ин�
     завершает explorer.exe и запускает его заново.
   - "Очистить буфер обмена" / "Clear Clipboard" — очищает системный буфер
     обмена через Win32 API (OpenClipboard → EmptyClipboard → CloseClipboard).
-  - "Проверка системы" / "System Health Check" — запускает "sfc /verifyonly"
-    (только проверка целостности системных файлов, ничего не изменяет).
 
 Вкладка "О программе" / "About": название и версия программы, автор,
 интерактивная кликабельная ссылка на GitHub-репозиторий и текст дисклеймера
@@ -102,6 +100,35 @@ COLOR_CATEGORY = "#D6B8FF"    # цвет заголовков категорий
 # Путь к иконке приложения (.ico).
 ICON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ATCleanerLogoMR.ico")
 
+# Путь к файлу конфигурации (хранит только выбранный язык, одна строка).
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.txt")
+
+
+def load_saved_language():
+    """Читает config.txt и возвращает сохранённый код языка (ru/en/gr/de/es),
+    если файл существует и содержит валидный код. Иначе возвращает None —
+    вызывающий код в этом случае использует DEFAULT_LANG (English)."""
+    try:
+        if os.path.isfile(CONFIG_PATH):
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                saved = f.read().strip().lower()
+            if saved in LANG_OPTIONS.values():
+                return saved
+    except OSError:
+        pass
+    return None
+
+
+def save_language(lang_code):
+    """Записывает выбранный код языка в config.txt (перезаписывает файл).
+    Ошибки записи (например, папка без прав на запись) тихо игнорируются —
+    это не критичная функция, программа должна работать и без неё."""
+    try:
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            f.write(lang_code)
+    except OSError:
+        pass
+
 
 # ---------------------------------------------------------------------------
 # Словарь переводов
@@ -109,7 +136,7 @@ ICON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ATCleanerL
 LANG_OPTIONS = {
     "🇬🇧 English": "en",
     "🇷🇺 Русский": "ru",
-    "🇬🇷 Ελληνικά": "el",
+    "🇬🇷 Ελληνικά": "gr",
     "🇩🇪 Deutsch": "de",
     "🇪🇸 Español": "es",
 }
@@ -140,10 +167,12 @@ TR = {
         "icon_cache_button_working": "Восстановление...",
         "explorer_button": "🗂️  Перезапустить Проводник",
         "explorer_button_working": "Перезапуск...",
+        "tool_desc_explorer": "Перезапуск проводника, если зависла панель задач.",
+        "tool_desc_icon_cache": "Исправляет белые или неверно отображаемые значки.",
+        "tool_desc_clipboard": "Мгновенно удаляет данные буфера обмена из памяти.",
+        "lang_switch_hint": "Мгновенное переключение между 5 языками",
         "clipboard_button": "📋  Очистить буфер обмена",
         "clipboard_button_working": "Очистка...",
-        "healthcheck_button": "🩺  Проверка системы",
-        "healthcheck_button_working": "Проверка...",
         "footer": "Создано от ArseniosTs",
         "status_ready": "Готово к работе.",
         "status_cleaning": "Идёт очистка, подождите...",
@@ -157,10 +186,6 @@ TR = {
         "status_clipboard_working": "Очищаем буфер обмена...",
         "status_clipboard_done": "Буфер обмена очищен.",
         "status_clipboard_failed": "Не удалось очистить буфер обмена.",
-        "status_healthcheck_working": "Идёт проверка системных файлов (sfc /verifyonly)...",
-        "status_healthcheck_done": "Проверка завершена — повреждений не найдено.",
-        "status_healthcheck_issues": "Проверка завершена — обнаружены проблемы, см. лог.",
-        "status_healthcheck_failed": "Не удалось запустить проверку системы.",
         "log_dns_title": "Очистка кэша DNS (ipconfig /flushdns)",
         "log_cleaning": "Очистка: {label}",
         "log_path": "  Путь: {path}",
@@ -173,7 +198,6 @@ TR = {
         "log_icon_cache_title": "Восстановление кэша иконок (перезапуск проводника)...",
         "log_explorer_title": "Перезапуск процесса explorer.exe...",
         "log_clipboard_title": "Очистка буфера обмена (EmptyClipboard)...",
-        "log_healthcheck_title": "Запуск sfc /verifyonly (проверка целостности системных файлов)...",
         "log_user_skipped": "⏭ Пропущено пользователем (флажок снят): {label}",
         "log_extra_section_title": "Дополнительно (лаунчеры, редакторы):",
         "msg_clean_done_title": "Очистка завершена",
@@ -232,10 +256,12 @@ TR = {
         "icon_cache_button_working": "Rebuilding...",
         "explorer_button": "🗂️  Restart Explorer",
         "explorer_button_working": "Restarting...",
+        "tool_desc_explorer": "Restarts File Explorer if the taskbar freezes up.",
+        "tool_desc_icon_cache": "Fixes icons that appear blank, white, or wrong.",
+        "tool_desc_clipboard": "Instantly wipes clipboard data from memory.",
+        "lang_switch_hint": "Instant switching between 5 languages",
         "clipboard_button": "📋  Clear Clipboard",
         "clipboard_button_working": "Clearing...",
-        "healthcheck_button": "🩺  System Health Check",
-        "healthcheck_button_working": "Checking...",
         "footer": "Created by ArseniosTs",
         "status_ready": "Ready to work.",
         "status_cleaning": "Cleaning in progress, please wait...",
@@ -249,10 +275,6 @@ TR = {
         "status_clipboard_working": "Clearing clipboard...",
         "status_clipboard_done": "Clipboard cleared.",
         "status_clipboard_failed": "Failed to clear the clipboard.",
-        "status_healthcheck_working": "Scanning system files (sfc /verifyonly)...",
-        "status_healthcheck_done": "Scan complete — no integrity violations found.",
-        "status_healthcheck_issues": "Scan complete — issues found, see log for details.",
-        "status_healthcheck_failed": "Failed to run the system health check.",
         "log_dns_title": "Flushing DNS cache (ipconfig /flushdns)",
         "log_cleaning": "Cleaning: {label}",
         "log_path": "  Path: {path}",
@@ -265,7 +287,6 @@ TR = {
         "log_icon_cache_title": "Rebuilding icon cache (restarting Explorer)...",
         "log_explorer_title": "Restarting explorer.exe process...",
         "log_clipboard_title": "Clearing the clipboard (EmptyClipboard)...",
-        "log_healthcheck_title": "Running sfc /verifyonly (system file integrity check)...",
         "log_user_skipped": "⏭ Skipped by user (checkbox unchecked): {label}",
         "log_extra_section_title": "Additional (launchers, editors):",
         "msg_clean_done_title": "Cleaning Complete",
@@ -300,7 +321,7 @@ TR = {
         "chk_adobe_premiere": "Adobe Premiere",
         "chk_shaders": "GPU Shaders (NVIDIA/AMD Cache)",
     },
-    "el": {
+    "gr": {
         "window_title": "ATCleaner — Εκκαθάριση Προσωρινών Αρχείων Windows",
         "main_title": "ATCleaner — Εκκαθάριση Cache & Βελτιστοποίηση Windows",
         "subtitle": "Επιλέξτε τι θα καθαριστεί παρακάτω. Η cache DNS ανανεώνεται\n"
@@ -324,10 +345,12 @@ TR = {
         "icon_cache_button_working": "Επαναφορά...",
         "explorer_button": "🗂️  Επανεκκίνηση Explorer",
         "explorer_button_working": "Επανεκκίνηση...",
+        "tool_desc_explorer": "Επανεκκίνηση της Διαχείρισης Αρχείων σε περίπτωση που κολλήσει η γραμμή εργασιών.",
+        "tool_desc_icon_cache": "Επιδιόρθωση της προσωρινής μνήμης εικονιδίων.",
+        "tool_desc_clipboard": "Άμεση διαγραφή των δεδομένων του προχείρου από τη μνήμη.",
+        "lang_switch_hint": "Άμεση εναλλαγή 5 γλωσσών",
         "clipboard_button": "📋  Εκκαθάριση Προχείρου",
         "clipboard_button_working": "Εκκαθάριση...",
-        "healthcheck_button": "🩺  Έλεγχος Συστήματος",
-        "healthcheck_button_working": "Έλεγχος...",
         "footer": "Δημιουργήθηκε από ArseniosTs",
         "status_ready": "Έτοιμο.",
         "status_cleaning": "Εκκαθάριση σε εξέλιξη, παρακαλώ περιμένετε...",
@@ -341,10 +364,6 @@ TR = {
         "status_clipboard_working": "Εκκαθάριση προχείρου...",
         "status_clipboard_done": "Το πρόχειρο εκκαθαρίστηκε.",
         "status_clipboard_failed": "Αποτυχία εκκαθάρισης προχείρου.",
-        "status_healthcheck_working": "Έλεγχος αρχείων συστήματος (sfc /verifyonly)...",
-        "status_healthcheck_done": "Ο έλεγχος ολοκληρώθηκε — δεν βρέθηκαν προβλήματα.",
-        "status_healthcheck_issues": "Ο έλεγχος ολοκληρώθηκε — βρέθηκαν προβλήματα, δείτε το log.",
-        "status_healthcheck_failed": "Αποτυχία εκτέλεσης ελέγχου συστήματος.",
         "log_dns_title": "Εκκαθάριση cache DNS (ipconfig /flushdns)",
         "log_cleaning": "Εκκαθάριση: {label}",
         "log_path": "  Διαδρομή: {path}",
@@ -357,7 +376,6 @@ TR = {
         "log_icon_cache_title": "Επαναφορά cache εικονιδίων (επανεκκίνηση Explorer)...",
         "log_explorer_title": "Επανεκκίνηση της διεργασίας explorer.exe...",
         "log_clipboard_title": "Εκκαθάριση προχείρου (EmptyClipboard)...",
-        "log_healthcheck_title": "Εκτέλεση sfc /verifyonly (έλεγχος ακεραιότητας αρχείων συστήματος)...",
         "log_user_skipped": "⏭ Παραλείφθηκε από τον χρήστη (το πλαίσιο δεν είναι επιλεγμένο): {label}",
         "log_extra_section_title": "Επιπλέον (launchers, επεξεργαστές):",
         "msg_clean_done_title": "Η Εκκαθάριση Ολοκληρώθηκε",
@@ -416,10 +434,12 @@ TR = {
         "icon_cache_button_working": "Wird wiederhergestellt...",
         "explorer_button": "🗂️  Explorer Neu Starten",
         "explorer_button_working": "Neustart läuft...",
+        "tool_desc_explorer": "Startet den Explorer neu, wenn die Taskleiste einfriert.",
+        "tool_desc_icon_cache": "Behebt weiße oder falsch angezeigte Symbole.",
+        "tool_desc_clipboard": "Löscht Zwischenablage-Daten sofort aus dem Speicher.",
+        "lang_switch_hint": "Sofortiger Wechsel zwischen 5 Sprachen",
         "clipboard_button": "📋  Zwischenablage Leeren",
         "clipboard_button_working": "Wird geleert...",
-        "healthcheck_button": "🩺  Systemprüfung",
-        "healthcheck_button_working": "Prüfung läuft...",
         "footer": "Erstellt von ArseniosTs",
         "status_ready": "Bereit.",
         "status_cleaning": "Bereinigung läuft, bitte warten...",
@@ -433,10 +453,6 @@ TR = {
         "status_clipboard_working": "Zwischenablage wird geleert...",
         "status_clipboard_done": "Zwischenablage wurde geleert.",
         "status_clipboard_failed": "Zwischenablage konnte nicht geleert werden.",
-        "status_healthcheck_working": "Systemdateien werden geprüft (sfc /verifyonly)...",
-        "status_healthcheck_done": "Prüfung abgeschlossen — keine Probleme gefunden.",
-        "status_healthcheck_issues": "Prüfung abgeschlossen — Probleme gefunden, siehe Log.",
-        "status_healthcheck_failed": "Systemprüfung konnte nicht gestartet werden.",
         "log_dns_title": "DNS-Cache wird geleert (ipconfig /flushdns)",
         "log_cleaning": "Bereinige: {label}",
         "log_path": "  Pfad: {path}",
@@ -449,7 +465,6 @@ TR = {
         "log_icon_cache_title": "Symbol-Cache wird wiederhergestellt (Explorer-Neustart)...",
         "log_explorer_title": "explorer.exe wird neu gestartet...",
         "log_clipboard_title": "Zwischenablage wird geleert (EmptyClipboard)...",
-        "log_healthcheck_title": "sfc /verifyonly wird ausgeführt (Systemdatei-Integritätsprüfung)...",
         "log_user_skipped": "⏭ Vom Nutzer übersprungen (Kontrollkästchen deaktiviert): {label}",
         "log_extra_section_title": "Zusätzlich (Launcher, Editoren):",
         "msg_clean_done_title": "Bereinigung Abgeschlossen",
@@ -507,10 +522,12 @@ TR = {
         "icon_cache_button_working": "Reconstruyendo...",
         "explorer_button": "🗂️  Reiniciar Explorador",
         "explorer_button_working": "Reiniciando...",
+        "tool_desc_explorer": "Reinicia el Explorador si la barra de tareas se congela.",
+        "tool_desc_icon_cache": "Corrige iconos en blanco o mostrados incorrectamente.",
+        "tool_desc_clipboard": "Borra al instante los datos del portapapeles de la memoria.",
+        "lang_switch_hint": "Cambio instantáneo entre 5 idiomas",
         "clipboard_button": "📋  Vaciar Portapapeles",
         "clipboard_button_working": "Vaciando...",
-        "healthcheck_button": "🩺  Verificación del Sistema",
-        "healthcheck_button_working": "Verificando...",
         "footer": "Creado por ArseniosTs",
         "status_ready": "Listo.",
         "status_cleaning": "Limpieza en curso, espera por favor...",
@@ -524,10 +541,6 @@ TR = {
         "status_clipboard_working": "Vaciando el portapapeles...",
         "status_clipboard_done": "Portapapeles vaciado.",
         "status_clipboard_failed": "No se pudo vaciar el portapapeles.",
-        "status_healthcheck_working": "Analizando archivos del sistema (sfc /verifyonly)...",
-        "status_healthcheck_done": "Análisis completo — no se encontraron problemas.",
-        "status_healthcheck_issues": "Análisis completo — se encontraron problemas, revisa el registro.",
-        "status_healthcheck_failed": "No se pudo ejecutar la verificación del sistema.",
         "log_dns_title": "Vaciando caché DNS (ipconfig /flushdns)",
         "log_cleaning": "Limpiando: {label}",
         "log_path": "  Ruta: {path}",
@@ -540,7 +553,6 @@ TR = {
         "log_icon_cache_title": "Reconstruyendo caché de iconos (reiniciando Explorador)...",
         "log_explorer_title": "Reiniciando el proceso explorer.exe...",
         "log_clipboard_title": "Vaciando el portapapeles (EmptyClipboard)...",
-        "log_healthcheck_title": "Ejecutando sfc /verifyonly (verificación de integridad de archivos)...",
         "log_user_skipped": "⏭ Omitido por el usuario (casilla desmarcada): {label}",
         "log_extra_section_title": "Adicional (lanzadores, editores):",
         "msg_clean_done_title": "Limpieza Completa",
@@ -646,7 +658,7 @@ FOLDER_NAMES = {
         "steam_appcache": "Steam Cache (appcache)",
         "steam_htmlcache": "Steam Cache (htmlcache)",
     },
-    "el": {
+    "gr": {
         "temp_user": "Προσωρινά Αρχεία Χρήστη",
         "temp_system": "Προσωρινά Αρχεία Συστήματος",
         "windows_logs": "Αρχεία Καταγραφής Windows",
@@ -1120,35 +1132,6 @@ def clear_clipboard():
         return False, str(e)
 
 
-def run_system_health_check():
-    """
-    Запускает встроенную утилиту Windows "sfc /verifyonly" — она ТОЛЬКО
-    проверяет целостность системных файлов и ничего не изменяет и не чинит
-    (безопасная, "только чтение" операция). Может потребовать прав
-    администратора, иначе завершится с сообщением об отказе в доступе,
-    что программа покажет пользователю как есть, без падения.
-
-    Возвращает (успех: bool, has_issues: bool, вывод команды: str).
-    """
-    if not is_windows():
-        return False, False, "Windows only."
-    try:
-        result = subprocess.run(
-            ["sfc", "/verifyonly"],
-            capture_output=True,
-            text=True,
-            shell=False,
-        )
-        output = (result.stdout or result.stderr or "").strip()
-        # sfc обычно возвращает код 0 и в тексте сообщает, найдены ли нарушения
-        has_issues = "did not find any integrity violations" not in output.lower() \
-            and "не найдены нарушения целостности" not in output.lower()
-        success = result.returncode == 0
-        return success, has_issues, output
-    except Exception as e:
-        return False, False, str(e)
-
-
 # ---------------------------------------------------------------------------
 # Интерфейс
 # ---------------------------------------------------------------------------
@@ -1158,7 +1141,9 @@ class CleanerApp(ctk.CTk):
 
         ctk.set_appearance_mode("dark")
 
-        self.current_lang = DEFAULT_LANG
+        # Сначала пробуем восстановить язык, сохранённый в config.txt при
+        # прошлом запуске. Если файла нет или он повреждён — English.
+        self.current_lang = load_saved_language() or DEFAULT_LANG
 
         self.title(self.tr("window_title"))
 
@@ -1275,11 +1260,19 @@ class CleanerApp(ctk.CTk):
             text_color="white",
         )
         default_option = next(
-            (option for option, code in LANG_OPTIONS.items() if code == DEFAULT_LANG),
+            (option for option, code in LANG_OPTIONS.items() if code == self.current_lang),
             LANG_OPTION_LIST[0],
         )
         self.language_menu.set(default_option)
         self.language_menu.pack(side="left")
+
+        self.lang_switch_hint_label = ctk.CTkLabel(
+            bottom_bar,
+            text=self.tr("lang_switch_hint"),
+            font=ctk.CTkFont(family="Segoe UI", size=8),
+            text_color=COLOR_SUBTEXT,
+        )
+        self.lang_switch_hint_label.pack(side="left", padx=(8, 0))
 
         self.footer_label = ctk.CTkLabel(
             bottom_bar,
@@ -1414,13 +1407,13 @@ class CleanerApp(ctk.CTk):
         self.utilities_title_label = ctk.CTkLabel(
             parent,
             text=self.tr("utilities_title"),
-            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             text_color=COLOR_TEXT,
         )
-        self.utilities_title_label.pack(pady=(14, 14))
+        self.utilities_title_label.pack(pady=(10, 10))
 
-        grid_frame = ctk.CTkFrame(parent, fg_color=COLOR_TAB_BG)
-        grid_frame.pack(pady=(0, 10))
+        tools_wrapper = ctk.CTkFrame(parent, fg_color=COLOR_TAB_BG)
+        tools_wrapper.pack(expand=True)
 
         button_kwargs = dict(
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
@@ -1428,41 +1421,49 @@ class CleanerApp(ctk.CTk):
             hover_color=COLOR_TOOL_ACCENT_HOVER,
             text_color="white",
             corner_radius=10,
-            width=210,
-            height=54,
+            width=280,
+            height=36,
         )
+        desc_font = ctk.CTkFont(family="Segoe UI", size=9)
 
         self.explorer_button = ctk.CTkButton(
-            grid_frame,
+            tools_wrapper,
             text=self.tr("explorer_button"),
             command=self.start_explorer_restart,
             **button_kwargs,
         )
-        self.explorer_button.grid(row=0, column=0, padx=8, pady=8)
+        self.explorer_button.pack(pady=(4, 0))
+        self.explorer_desc_label = ctk.CTkLabel(
+            tools_wrapper, text=self.tr("tool_desc_explorer"),
+            font=desc_font, text_color=COLOR_SUBTEXT,
+        )
+        self.explorer_desc_label.pack(pady=(2, 10))
 
         self.icon_cache_button = ctk.CTkButton(
-            grid_frame,
+            tools_wrapper,
             text=self.tr("icon_cache_button"),
             command=self.start_icon_cache_rebuild,
             **button_kwargs,
         )
-        self.icon_cache_button.grid(row=0, column=1, padx=8, pady=8)
+        self.icon_cache_button.pack(pady=(4, 0))
+        self.icon_cache_desc_label = ctk.CTkLabel(
+            tools_wrapper, text=self.tr("tool_desc_icon_cache"),
+            font=desc_font, text_color=COLOR_SUBTEXT,
+        )
+        self.icon_cache_desc_label.pack(pady=(2, 10))
 
         self.clipboard_button = ctk.CTkButton(
-            grid_frame,
+            tools_wrapper,
             text=self.tr("clipboard_button"),
             command=self.start_clipboard_clear,
             **button_kwargs,
         )
-        self.clipboard_button.grid(row=1, column=0, padx=8, pady=8)
-
-        self.healthcheck_button = ctk.CTkButton(
-            grid_frame,
-            text=self.tr("healthcheck_button"),
-            command=self.start_health_check,
-            **button_kwargs,
+        self.clipboard_button.pack(pady=(4, 0))
+        self.clipboard_desc_label = ctk.CTkLabel(
+            tools_wrapper, text=self.tr("tool_desc_clipboard"),
+            font=desc_font, text_color=COLOR_SUBTEXT,
         )
-        self.healthcheck_button.grid(row=1, column=1, padx=8, pady=8)
+        self.clipboard_desc_label.pack(pady=(2, 4))
 
     # -----------------------------------------------------------------
     # Построение вкладки "О программе": название, автор, GitHub, дисклеймер
@@ -1535,6 +1536,7 @@ class CleanerApp(ctk.CTk):
         old_tab_about = self.tr("tab_about")
 
         self.current_lang = new_lang
+        save_language(new_lang)  # запоминаем выбор для следующего запуска
         self.apply_language(old_tab_clean, old_tab_settings, old_tab_tools, old_tab_about)
 
     def apply_language(self, old_tab_clean, old_tab_settings, old_tab_tools, old_tab_about):
@@ -1547,6 +1549,12 @@ class CleanerApp(ctk.CTk):
         self.footer_label.configure(text=self.tr("footer"))
         self.chk_hint_label.configure(text=self.tr("chk_section_hint"))
         self.utilities_title_label.configure(text=self.tr("utilities_title"))
+        self.lang_switch_hint_label.configure(text=self.tr("lang_switch_hint"))
+
+        # Короткие подсказки под кнопками вкладки "Инструменты"
+        self.explorer_desc_label.configure(text=self.tr("tool_desc_explorer"))
+        self.icon_cache_desc_label.configure(text=self.tr("tool_desc_icon_cache"))
+        self.clipboard_desc_label.configure(text=self.tr("tool_desc_clipboard"))
 
         # Вкладка "О программе"
         self.about_title_label.configure(text=self.tr("about_title"))
@@ -1582,8 +1590,6 @@ class CleanerApp(ctk.CTk):
             self.explorer_button.configure(text=self.tr("explorer_button"))
         if self.clipboard_button.cget("state") != "disabled":
             self.clipboard_button.configure(text=self.tr("clipboard_button"))
-        if self.healthcheck_button.cget("state") != "disabled":
-            self.healthcheck_button.configure(text=self.tr("healthcheck_button"))
 
         # Статус-строку переводим только в состоянии "готово"
         self.status_label.configure(text=self.tr("status_ready"))
@@ -1618,7 +1624,6 @@ class CleanerApp(ctk.CTk):
         self.icon_cache_button.configure(state=state)
         self.explorer_button.configure(state=state)
         self.clipboard_button.configure(state=state)
-        self.healthcheck_button.configure(state=state)
 
     # -----------------------------------------------------------------
     # Очистка мусора
@@ -1801,45 +1806,6 @@ class CleanerApp(ctk.CTk):
             messagebox.showinfo(self.tr("msg_done_title"), self.tr("status_clipboard_done"))
         else:
             messagebox.showwarning(self.tr("msg_failed_title"), self.tr("status_clipboard_failed"))
-
-    # -----------------------------------------------------------------
-    # Инструмент: проверка целостности системы (sfc /verifyonly)
-    # -----------------------------------------------------------------
-    def start_health_check(self):
-        self.set_buttons_state("disabled")
-        self.healthcheck_button.configure(text=self.tr("healthcheck_button_working"))
-        self.status_label.configure(text=self.tr("status_healthcheck_working"))
-        self.clear_log()
-        self.log(self.tr("log_healthcheck_title"))
-
-        thread = threading.Thread(target=self.run_health_check, daemon=True)
-        thread.start()
-
-    def run_health_check(self):
-        success, has_issues, output = run_system_health_check()
-        if output:
-            self.log(f"  {output}")
-        self.after(0, self.finish_health_check, success, has_issues)
-
-    def finish_health_check(self, success, has_issues):
-        self.set_buttons_state("normal")
-        self.healthcheck_button.configure(text=self.tr("healthcheck_button"))
-
-        if not success:
-            status_key = "status_healthcheck_failed"
-        elif has_issues:
-            status_key = "status_healthcheck_issues"
-        else:
-            status_key = "status_healthcheck_done"
-
-        self.status_label.configure(text=self.tr(status_key))
-
-        if not success:
-            messagebox.showwarning(self.tr("msg_failed_title"), self.tr(status_key))
-        elif has_issues:
-            messagebox.showwarning(self.tr("msg_done_title"), self.tr(status_key))
-        else:
-            messagebox.showinfo(self.tr("msg_done_title"), self.tr(status_key))
 
 
 if __name__ == "__main__":
